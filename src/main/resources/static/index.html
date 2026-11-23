@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>TripNavi</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome 아이콘 -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    >
+
+    <!-- Leaflet.js 지도 -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 카카오 SDK -->
+    <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+
+    <style>
+
+        body {
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                sans-serif;
+        }
+
+        #app-shell > .screen { display: none; }
+        #app-shell > .screen.active { display: flex; }
+        #screen-main #map { min-height: 0; }
+        .mood-tag { color: #374151; }
+        #app-shell { isolation:isolate; }
+        #tn-toast {position:absolute;left:18px;right:18px;bottom:90px;z-index:9999;display:none;align-items:center;gap:10px;padding:14px 17px;border-radius:18px;background:#251a42;color:white;font-size:13px;box-shadow:0 12px 30px #26134b55;animation:tn-pop .2s ease-out;line-height:1.5;}
+        #tn-toast.visible {display:flex;}
+        #tn-dialog {position:absolute;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:#21152b80;padding:22px;backdrop-filter:blur(3px);}
+        #tn-dialog.visible {display:flex;}
+        .tn-dialog-card {width:100%;max-width:340px;background:white;border-radius:26px;padding:24px;box-shadow:0 24px 50px #24134444;animation:tn-pop .2s ease-out;}
+        .tn-dialog-button {flex:1;border-radius:14px;padding:12px 8px;font-size:14px;font-weight:700;}
+        @keyframes tn-pop {from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+        #screen-my input:focus {outline:2px solid #c4b5fd;outline-offset:0;}
+
+
+    </style>
+
+</head>
+
+
+<body class="bg-gray-100 flex justify-center items-center min-h-screen p-0 md:p-4">
+
+
+<!-- ================================================= -->
+<!-- 앱 전체 -->
+<!-- ================================================= -->
+
+<div
+    id="app-shell"
+    class="relative w-full max-w-[430px] h-[100vh] md:h-[850px]
+           bg-white md:rounded-[40px]
+           overflow-hidden shadow-2xl
+           border-0 md:border-[8px] border-gray-200
+           flex flex-col"
+>
+
+
+<div id="tn-toast" role="status" aria-live="polite"><i class="fa-solid fa-circle-check text-violet-300"></i><span id="tn-toast-text"></span></div>
+<div id="tn-dialog" role="dialog" aria-modal="true" aria-labelledby="tn-dialog-title"><div class="tn-dialog-card"><div class="w-12 h-12 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-sparkles"></i></div><h3 id="tn-dialog-title" class="font-bold text-lg text-gray-900">TripNavi</h3><p id="tn-dialog-text" class="text-sm text-gray-600 mt-2 leading-relaxed"></p><input id="tn-dialog-input" class="hidden mt-4 w-full rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm" maxlength="80"><div class="flex gap-3 mt-6"><button id="tn-dialog-cancel" class="tn-dialog-button bg-gray-100 text-gray-600">취소</button><button id="tn-dialog-ok" class="tn-dialog-button bg-violet-600 text-white">확인</button></div></div></div>
+
+<!-- ================================================= -->
+<!-- SCREEN 1 : 로그인 -->
+<!-- ================================================= -->
+
+<div
+    id="screen-login"
+    class="screen active absolute inset-0 z-40
+           flex-col justify-center px-8 bg-white"
+>
+
+    <!-- 로고 -->
+    <div class="text-center mb-8">
+
+        <div
+            class="inline-flex items-center justify-center
+                   border-2 border-gray-800
+                   rounded-2xl px-6 py-3
+                   space-x-3 mb-2 shadow-sm"
+        >
+
+            <i class="fa-solid fa-location-dot text-xl text-gray-800"></i>
+
+            <span class="text-2xl font-black tracking-tight text-gray-900">
+                TripNavi
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- 이메일 / 비밀번호 -->
+
+    <div class="space-y-4">
+
+        <div>
+
+            <label class="block text-xs font-semibold text-gray-600 mb-1">
+                이메일
+            </label>
+
+            <input
+                type="email"
+                id="login-email"
+                placeholder="이메일을 입력해 주세요"
+                class="w-full px-4 py-3 text-sm
+                       bg-gray-50 border border-gray-200
+                       rounded-lg focus:outline-none
+                       focus:border-gray-800"
+            >
+
+        </div>
+
+
+        <div>
+
+            <label class="block text-xs font-semibold text-gray-600 mb-1">
+                비밀번호
+            </label>
+
+            <input
+                type="password"
+                id="login-password"
+                placeholder="비밀번호를 입력해 주세요"
+                class="w-full px-4 py-3 text-sm
+                       bg-gray-50 border border-gray-200
+                       rounded-lg focus:outline-none
+                       focus:border-gray-800"
+            >
+
+        </div>
+
+
+        <button
+            onclick="handleLogin()"
+            class="w-full py-3.5
+                   bg-[#4A4A4A] text-white
+                   text-sm font-bold rounded-lg
+                   hover:bg-gray-800 transition"
+        >
+            로그인 하기
+        </button>
+
+    </div>
+
+
+    <!-- 회원가입 -->
+
+    <div class="text-center mt-4">
+
+        <span class="text-xs text-gray-400">
+            회원이 아니신가요?
+        </span>
+
+        <button
+            onclick="goToSignup()"
+            class="text-xs text-gray-600
+                   underline font-semibold ml-1"
+        >
+            회원가입하기
+        </button>
+
+    </div>
+
+
+    <!-- SNS 로그인 -->
+
+    <div class="mt-8">
+
+        <div class="relative flex py-2 items-center">
+
+            <div class="flex-grow border-t border-gray-200"></div>
+
+            <span class="flex-shrink mx-4 text-xs text-gray-400">
+                SNS 계정으로 로그인하기
+            </span>
+
+            <div class="flex-grow border-t border-gray-200"></div>
+
+        </div>
+
+
+        <div class="flex justify-center mt-4">
+
+            <button
+                onclick="loginWithKakao()"
+                class="w-12 h-12
+                       rounded-full bg-[#FEE500]
+                       flex items-center justify-center
+                       shadow-md hover:scale-105 transition"
+            >
+
+                <i
+                    class="fa-solid fa-comment
+                           text-xl text-[#3C1E1E]"
+                ></i>
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- SCREEN 2 : 회원가입 -->
+<!-- ================================================= -->
+
+<div
+    id="screen-signup"
+    class="screen absolute inset-0 z-40
+           flex-col justify-between
+           p-8 bg-white"
+>
+
+    <div>
+
+        <button
+            onclick="goToLogin()"
+            class="text-sm text-gray-400
+                   hover:text-gray-700 mb-6"
+        >
+
+            <i class="fa-solid fa-arrow-left"></i>
+            이전
+
+        </button>
+
+
+        <div class="text-center mb-8">
+
+            <div
+                class="inline-flex items-center justify-center
+                       border-2 border-gray-800
+                       rounded-2xl px-6 py-2.5
+                       space-x-2 mb-2"
+            >
+
+                <i class="fa-solid fa-location-dot text-lg text-gray-800"></i>
+
+                <span class="text-xl font-black text-gray-900">
+                    TripNavi
+                </span>
+
+            </div>
+
+
+            <h2 class="text-lg font-bold text-gray-800 mt-2">
+                회원가입
+            </h2>
+
+        </div>
+
+
+        <div class="space-y-4">
+
+            <div>
+
+                <label class="block text-xs font-semibold text-gray-600 mb-1">
+                    이메일
+                </label>
+
+                <input
+                    type="email"
+                    id="signup-email"
+                    placeholder="example@email.com"
+                    class="w-full px-4 py-3 text-sm
+                           bg-gray-50 border border-gray-200
+                           rounded-lg focus:outline-none
+                           focus:border-gray-800"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-xs font-semibold text-gray-600 mb-1">
+                    비밀번호
+                </label>
+
+                <input
+                    type="password"
+                    id="signup-password"
+                    placeholder="8자리 이상 입력"
+                    class="w-full px-4 py-3 text-sm
+                           bg-gray-50 border border-gray-200
+                           rounded-lg focus:outline-none
+                           focus:border-gray-800"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-xs font-semibold text-gray-600 mb-1">
+                    비밀번호 확인
+                </label>
+
+                <input
+                    type="password"
+                    id="signup-password-confirm"
+                    placeholder="비밀번호 재입력"
+                    class="w-full px-4 py-3 text-sm
+                           bg-gray-50 border border-gray-200
+                           rounded-lg focus:outline-none
+                           focus:border-gray-800"
+                >
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <button
+        onclick="handleSignup()"
+        class="w-full py-3.5
+               bg-[#4A4A4A] text-white
+               text-sm font-bold rounded-lg
+               hover:bg-gray-800 transition"
+    >
+        가입완료 및 시작하기
+    </button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- SCREEN 3 : 홈 / 지도 -->
+<!-- ================================================= -->
+
+<div
+    id="screen-main"
+    class="screen absolute inset-0
+           flex-col bg-white"
+>
+
+
+    <!-- 검색창 -->
+
+    <div
+        class="absolute top-4 left-4 right-4 z-30"
+    >
+
+        <div
+            class="bg-white
+                   rounded-2xl p-3
+                   shadow-lg
+                   border border-gray-100
+                   flex items-center space-x-3"
+        >
+
+            <i
+                class="fa-solid fa-magnifying-glass
+                       text-gray-400 ml-1"
+            ></i>
+
+
+            <input id="place-search" type="search" placeholder="가게·장소 이름 검색" onkeydown="if(event.key==='Enter') searchPlaces()" class="w-full text-sm font-medium focus:outline-none text-gray-800"><button onclick="searchPlaces()" class="text-blue-600 p-2" aria-label="검색"><i class="fa-solid fa-arrow-right"></i></button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- 지도 -->
+
+    <div class="absolute right-3 top-24 z-[1000] flex flex-col gap-3">
+      <button onclick="openRoutePanel()" title="길찾기" class="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center"><i class="fa-solid fa-turn-up text-xl"></i></button>
+      <button onclick="startLiveLocation()" title="내 위치" class="w-12 h-12 rounded-full bg-white text-blue-600 shadow-lg flex items-center justify-center"><i class="fa-solid fa-location-crosshairs text-xl"></i></button>
+      <button onclick="openAiPanel()" title="AI 핫플 추천" class="w-12 h-12 rounded-full bg-gray-900 text-white shadow-lg flex items-center justify-center"><i class="fa-solid fa-wand-magic-sparkles text-xl"></i></button>
+    </div><div id="map-status" class="absolute left-3 top-24 z-[1000] hidden max-w-[70%] rounded-xl bg-white/95 px-3 py-2 text-xs shadow"></div>
+    <div
+        id="map"
+        class="w-full flex-1 z-10"
+    ></div>
+
+
+
+    <!-- ================================================= -->
+    <!-- 하단 네비게이션 -->
+    <!-- ================================================= -->
+
+    <div
+        class="absolute bottom-0
+               left-0 right-0 z-30
+               bg-white
+               border-t border-gray-200
+               h-[72px]
+               flex"
+    >
+
+        <!-- 홈 -->
+
+        <button
+            onclick="goToMap()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-blue-600"
+        >
+
+            <i class="fa-solid fa-house text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                홈
+            </span>
+
+        </button>
+
+
+
+        <!-- 여행경로 -->
+
+        <button
+            onclick="goToRoute()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-route text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                여행경로
+            </span>
+
+        </button>
+
+
+
+        <!-- 마이 -->
+
+        <button
+            onclick="goToMy()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-user text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                마이
+            </span>
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- SCREEN 4 : 여행장소 -->
+<!-- ================================================= -->
+
+<div
+    id="screen-route"
+    class="screen absolute inset-0 z-40
+           flex-col bg-gray-50"
+>
+
+
+    <!-- 상단 -->
+
+    <div class="px-6 pt-8 pb-4 bg-white">
+
+        <h2 class="text-2xl font-bold text-gray-900">
+            여행장소
+        </h2>
+
+
+        <p class="text-xs text-gray-400 mt-1">
+            저장해놓은 장소를 확인해보세요.
+        </p>
+
+    </div>
+
+
+
+    <!-- 저장 장소 -->
+<div class="px-6 pt-3 flex gap-2"><button id="tab-saved-places" onclick="switchSavedTab('places')" class="flex-1 rounded-xl border bg-white py-2 text-sm font-bold">저장한 장소</button><button id="tab-saved-routes" onclick="switchSavedTab('routes')" class="flex-1 rounded-xl border bg-blue-50 py-2 text-sm font-bold">저장한 경로</button></div><div id="saved-place-list" class="hidden flex-1 overflow-y-auto px-6 pt-4 space-y-3"></div><div id="saved-route-list" class="flex-1 overflow-y-auto px-6 pt-4 space-y-3"><p class="text-sm text-gray-500">저장된 여행경로를 불러오는 중...</p></div>
+
+<!-- 네비게이션 -->
+
+    <div
+        class="bg-white
+               border-t border-gray-200
+               h-[72px]
+               flex"
+    >
+
+        <button
+            onclick="goToMap()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-house text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                홈
+            </span>
+
+        </button>
+
+
+        <button
+            onclick="goToRoute()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-blue-600"
+        >
+
+            <i class="fa-solid fa-route text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                여행장소
+            </span>
+
+        </button>
+
+
+        <button
+            onclick="goToMy()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-user text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                마이
+            </span>
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- SCREEN 5 : 마이 -->
+<!-- ================================================= -->
+
+<div
+    id="screen-my"
+    class="screen absolute inset-0 z-40
+           flex-col bg-gray-50"
+>
+
+
+    <!-- 상단 -->
+
+    <div
+        class="bg-white
+               px-6 pt-8 pb-6"
+    >
+
+        <h2
+            class="text-2xl
+                   font-bold
+                   text-gray-900"
+        >
+            마이
+        </h2>
+    </div>
+
+
+
+    <div class="overflow-y-auto flex-1 px-5 py-5 space-y-4" style="background:#f7f5ff">
+      <div class="rounded-3xl p-5 text-white shadow-lg" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-2xl bg-white/20 overflow-hidden flex items-center justify-center text-2xl shrink-0"><img id="my-avatar" alt="프로필 사진" class="w-full h-full object-cover hidden"><i id="my-avatar-placeholder" class="fa-solid fa-user-astronaut"></i></div>
+          <div class="min-w-0"><div id="user-nickname" class="font-bold text-lg truncate">TripNavi 사용자</div><div id="my-email" class="text-xs text-violet-100 mt-1 break-all">계정 정보를 불러오는 중...</div></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3"><div class="rounded-2xl bg-white p-4 shadow-sm"><div class="text-xs text-gray-500">저장한 장소</div><div id="my-place-count" class="text-2xl font-extrabold text-violet-700 mt-1">—</div></div><div class="rounded-2xl bg-white p-4 shadow-sm"><div class="text-xs text-gray-500">저장한 경로</div><div id="my-route-count" class="text-2xl font-extrabold text-violet-700 mt-1">—</div></div></div>
+      <div class="rounded-3xl bg-white shadow-sm overflow-hidden divide-y divide-violet-50">
+        <button onclick="showMySection('profile')" class="w-full flex items-center gap-4 p-4 text-left"><span class="w-11 h-11 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><i class="fa-regular fa-user"></i></span><span class="flex-1"><span class="block font-semibold text-gray-800">프로필 설정</span><span class="text-xs text-gray-400">사진 · 닉네임 변경</span></span><i class="fa-solid fa-chevron-right text-gray-300"></i></button>
+        <button onclick="showMySection('account')" class="w-full flex items-center gap-4 p-4 text-left"><span class="w-11 h-11 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><i class="fa-solid fa-shield-halved"></i></span><span class="flex-1"><span class="block font-semibold text-gray-800">계정 설정</span><span class="text-xs text-gray-400">비밀번호 변경</span></span><i class="fa-solid fa-chevron-right text-gray-300"></i></button>
+        <button onclick="showMySection('contact')" class="w-full flex items-center gap-4 p-4 text-left"><span class="w-11 h-11 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><i class="fa-regular fa-comment-dots"></i></span><span class="flex-1"><span class="block font-semibold text-gray-800">문의하기</span><span class="text-xs text-gray-400">문의 내용 작성 · 제출</span></span><i class="fa-solid fa-chevron-right text-gray-300"></i></button>
+      </div>
+      <button onclick="logoutTripNavi()" class="w-full bg-white border border-red-100 text-red-500 font-semibold rounded-2xl py-4"><i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>로그아웃</button>
+      <p class="text-center text-xs text-gray-400 pb-4">TripNavi · 나만의 여행을 더 가깝게</p>
+    </div>
+    <div id="my-section-overlay" class="hidden absolute inset-0 z-[90] flex flex-col" style="background:#f7f5ff">
+      <div class="bg-white px-5 py-4 flex items-center gap-4 border-b border-violet-100"><button onclick="closeMySection()" aria-label="뒤로가기" class="w-9 h-9 rounded-xl bg-violet-50 text-violet-700"><i class="fa-solid fa-arrow-left"></i></button><h3 id="my-section-title" class="font-bold text-lg text-gray-800">프로필 설정</h3></div>
+      <div class="flex-1 overflow-y-auto p-5">
+        <div id="my-section-profile" class="hidden space-y-5">
+          <div class="bg-white rounded-3xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col items-center gap-3"><div class="w-24 h-24 rounded-full overflow-hidden bg-violet-100 flex items-center justify-center text-violet-500 text-3xl"><img id="my-avatar-edit" alt="프로필 미리보기" class="w-full h-full object-cover hidden"><i id="my-avatar-edit-placeholder" class="fa-solid fa-user"></i></div><label class="cursor-pointer text-violet-700 text-sm font-semibold rounded-xl bg-violet-50 px-4 py-2"><i class="fa-solid fa-camera mr-1"></i>사진 선택<input id="my-photo-file" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="previewMyPhoto(event)"></label><button onclick="removeMyPhoto()" class="text-xs text-gray-400 underline">기본 사진으로 변경</button></div>
+            <label class="block text-sm font-semibold text-gray-700">닉네임<input id="my-edit-name" maxlength="40" class="mt-2 w-full border border-violet-100 bg-violet-50 rounded-xl p-3 text-sm outline-none focus:border-violet-400" placeholder="닉네임"></label>
+            <button onclick="updateMyProfile()" class="w-full rounded-xl py-3 text-white font-bold bg-violet-600">프로필 저장</button><p class="text-xs text-gray-400">사진은 JPG, PNG, WEBP 형식으로 선택할 수 있습니다.</p>
+          </div>
+        </div>
+        <div id="my-section-account" class="hidden space-y-4"><div class="bg-white rounded-3xl p-5 shadow-sm space-y-3"><h4 class="font-bold text-gray-800">비밀번호 변경</h4><input id="my-old-password" type="password" autocomplete="current-password" placeholder="현재 비밀번호" class="w-full border rounded-xl p-3 text-sm"><input id="my-new-password" type="password" autocomplete="new-password" placeholder="새 비밀번호 (8자 이상)" class="w-full border rounded-xl p-3 text-sm"><input id="my-confirm-password" type="password" autocomplete="new-password" placeholder="새 비밀번호 확인" class="w-full border rounded-xl p-3 text-sm"><button onclick="updateMyPassword()" class="w-full rounded-xl py-3 bg-violet-600 text-white font-bold">비밀번호 변경</button><p class="text-xs text-gray-400">카카오 로그인 계정은 카카오 인증을 이용하므로 이 기능을 사용할 수 없습니다.</p></div></div>
+        <div id="my-section-contact" class="hidden space-y-4"><div class="bg-white rounded-3xl p-5 shadow-sm space-y-3"><h4 class="font-bold text-gray-800">문의하기</h4><input id="my-contact-title" maxlength="100" placeholder="문의 제목" class="w-full border rounded-xl p-3 text-sm"><textarea id="my-contact-message" rows="7" maxlength="2000" placeholder="문의 내용을 자세히 입력해 주세요." class="w-full border rounded-xl p-3 text-sm resize-none"></textarea><button onclick="submitMyInquiry()" class="w-full rounded-xl py-3 bg-violet-600 text-white font-bold">문의 제출</button><p class="text-xs text-gray-400">문의 내용은 서버에 저장되며 관리자가 확인할 수 있습니다.</p></div></div>
+      </div>
+    </div>
+
+    <!-- 네비게이션 -->
+
+    <div
+        class="mt-auto
+               bg-white
+               border-t border-gray-200
+               h-[72px]
+               flex"
+    >
+
+        <button
+            onclick="goToMap()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-house text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                홈
+            </span>
+
+        </button>
+
+
+        <button
+            onclick="goToRoute()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-gray-400"
+        >
+
+            <i class="fa-solid fa-route text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                여행장소
+            </span>
+
+        </button>
+
+
+        <button
+            onclick="goToMy()"
+            class="flex-1
+                   flex flex-col
+                   items-center justify-center
+                   text-blue-600"
+        >
+
+            <i class="fa-solid fa-user text-lg mb-1"></i>
+
+            <span class="text-xs font-bold">
+                마이
+            </span>
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- ================================================= -->
+<div id="route-panel" class="hidden absolute inset-0 z-[2000] bg-black/40 items-end"><div class="w-full rounded-t-3xl bg-white p-5"><div class="flex justify-between mb-3"><h2 class="text-lg font-bold">지도에서 길찾기</h2><button onclick="closePanel('route-panel')">✕</button></div><p class="text-xs text-gray-500 mb-3">현재 위치에서 선택한 장소까지 자동차 경로를 표시합니다.</p><p id="route-destination-label" class="rounded-xl border p-3 text-sm mb-3">장소를 검색하고 마커를 선택하세요.</p><button onclick="drawRoute()" class="w-full rounded-xl bg-blue-600 text-white font-bold py-3">경로 표시</button><p id="route-message" class="text-xs text-gray-500 mt-3"></p></div></div>
+<div id="ai-panel" class="hidden absolute inset-0 z-[2000] bg-black/40 items-end"><div class="w-full max-h-[82%] overflow-y-auto rounded-t-3xl bg-white p-5"><div class="flex justify-between mb-2"><h2 class="text-lg font-bold">✨ AI 핫플 추천</h2><button onclick="closePanel('ai-panel')">✕</button></div><p class="text-sm text-gray-500 mb-4">분위기를 선택하고 원하는 장소를 설명해 주세요.</p><div id="mood-tags" class="flex flex-wrap gap-2 mb-4"><button class="mood-tag" data-tag="조용한">🌿 조용한</button><button class="mood-tag" data-tag="감성적인">📷 감성적인</button><button class="mood-tag" data-tag="데이트">💗 데이트</button><button class="mood-tag" data-tag="맛집">🍜 맛집</button><button class="mood-tag" data-tag="카페">☕ 카페</button><button class="mood-tag" data-tag="전시 문화">🎨 전시·문화</button><button class="mood-tag" data-tag="자연">🌳 자연</button><button class="mood-tag" data-tag="가성비">💸 가성비</button></div><textarea id="ai-description" rows="3" placeholder="예: 조용하고 사진이 잘 나오는 카페" class="w-full rounded-xl border p-3 text-sm"></textarea><button onclick="requestRecommendations()" class="mt-3 w-full rounded-xl bg-gray-900 text-white font-bold py-3">장소 추천받기</button><p id="ai-message" class="text-xs text-gray-500 mt-3">AI가 취향에 맞는 장소를 추천합니다. 실제 위치는 지도 검색으로 확인합니다.</p><button onclick="showRecommendedRoute()" id="show-ai-route" class="hidden mt-3 w-full rounded-xl bg-violet-600 text-white font-bold py-3">지도에서 경로 보기</button><button onclick="saveRecommendedRoute()" id="save-ai-route" class="hidden mt-3 w-full rounded-xl bg-blue-600 text-white font-bold py-3">추천 장소들을 여행경로에 저장</button><div id="ai-results" class="mt-3 space-y-2"></div></div></div>
+
+</div> <!-- /app-shell -->
+
+<!-- JAVASCRIPT -->
+<!-- ================================================= -->
+
+<script>
+
+
+// =====================================================
+// 카카오 JavaScript 키
+// =====================================================
+
+const KAKAO_JAVASCRIPT_KEY =
+    'd68979fa60a9f0e63a96c174ae21ac90';
+
+
+// =====================================================
+// 카카오 SDK 초기화
+// =====================================================
+
+if (window.Kakao && !Kakao.isInitialized()) {
+
+    Kakao.init(KAKAO_JAVASCRIPT_KEY);
+
+}
+
+
+
+// =====================================================
+// 카카오 로그인 결과 확인 및 닉네임 가져오기
+// =====================================================
+
+async function checkKakaoLogin() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    if (!code && !error) return;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (error) { alert('카카오 로그인이 취소되었거나 실패했습니다.'); return; }
+    try {
+        const redirectUri = window.location.origin + window.location.pathname;
+        const response = await fetch('/api/auth/kakao', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({code, redirectUri})
+        });
+        const result = await response.json();
+        if (!response.ok) throw Error(result.message || '카카오 서버 로그인 실패');
+        document.getElementById('user-nickname').innerText = result.name;
+        localStorage.setItem('loginUserName', result.name);
+        goToMap();
+    } catch (e) {
+        alert('카카오 로그인 연동 실패: ' + e.message + '\n일반 이메일 로그인은 이용할 수 있습니다.');
+        showScreen('screen-login');
+    }
+}
+
+// =====================================================
+// 카카오 로그인 버튼
+// =====================================================
+
+function loginWithKakao() {
+
+    // SDK 확인
+
+    if (!window.Kakao) {
+
+        alert(
+            "카카오 SDK 로드에 실패했습니다."
+        );
+
+        return;
+    }
+
+
+
+    // SDK 초기화 확인
+
+    if (!Kakao.isInitialized()) {
+
+        Kakao.init(
+            KAKAO_JAVASCRIPT_KEY
+        );
+
+    }
+
+
+
+    // 현재 페이지 주소
+
+    const redirectUri =
+        window.location.origin +
+        window.location.pathname;
+
+
+
+    // 카카오 로그인 실행
+
+    Kakao.Auth.authorize({
+
+        redirectUri: redirectUri
+
+    });
+
+}
+
+
+
+// =====================================================
+// 회원가입
+// =====================================================
+
+async function handleSignup() {
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const confirm = document.getElementById('signup-password-confirm').value;
+    if (!email || !password) { alert('이메일과 비밀번호를 입력해주세요.'); return; }
+    if (password.length < 8) { alert('비밀번호는 8자리 이상 입력해주세요.'); return; }
+    if (password !== confirm) { alert('비밀번호가 일치하지 않습니다.'); return; }
+    try {
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: email.split('@')[0], email, password })
+        });
+        const result = await response.json();
+        alert(result.message || (response.ok ? '회원가입 성공' : '회원가입 실패'));
+        if (response.ok) goToLogin();
+    } catch (error) { console.error(error); alert('서버 연결에 실패했습니다.'); }
+}
+
+async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { alert('이메일과 비밀번호를 입력해주세요.'); return; }
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password})
+        });
+        const result = await response.json();
+        if (!response.ok) { alert(result.message || '로그인 실패'); return; }
+        const name = result.name || email.split('@')[0];
+        document.getElementById('user-nickname').innerText = name;
+        localStorage.setItem('loginUserName', name);
+        showToast('로그인 성공! 즐거운 여행을 시작해요.');
+        goToMap();
+    } catch (error) { console.error(error); alert('서버 연결에 실패했습니다.'); }
+}
+
+
+// =====================================================
+// 화면 전환
+// =====================================================
+
+function showScreen(id) {
+
+    document
+        .querySelectorAll('.screen')
+        .forEach(
+            screen => {
+                screen.classList.remove('active');
+            }
+        );
+
+
+    const target =
+        document.getElementById(id);
+
+
+    if (target) {
+
+        target.classList.add('active');
+
+    }
+
+}
+
+
+
+// =====================================================
+// 로그인 화면
+// =====================================================
+
+function goToLogin() {
+
+    showScreen(
+        'screen-login'
+    );
+
+}
+
+
+
+// =====================================================
+// 회원가입 화면
+// =====================================================
+
+function goToSignup() {
+
+    showScreen(
+        'screen-signup'
+    );
+
+}
+
+
+
+// =====================================================
+// 취향 설정
+// =====================================================
+
+function goToPreferences() {
+
+    showScreen(
+        'screen-preferences'
+    );
+
+}
+
+
+
+// =====================================================
+// 홈 / 지도
+// =====================================================
+
+function goToMap() {
+
+    showScreen(
+        'screen-main'
+    );
+
+
+    setTimeout(
+        function() {
+
+            initMap();
+
+
+            if (map) {
+
+                map.invalidateSize();
+
+            }
+
+        },
+        100
+    );
+
+}
+
+
+
+// =====================================================
+// 여행경로
+// =====================================================
+
+function goToRoute() {
+
+    showScreen(
+        'screen-route'
+    );
+    loadSavedRoutes();
+
+}
+
+
+
+// =====================================================
+// 마이
+// =====================================================
+
+function goToMy() { showScreen('screen-my'); loadMyPage(); }
+
+
+
+// =====================================================
+// 관심 태그
+// =====================================================
+
+function toggleTag(btn) {
+
+    btn.classList.toggle(
+        'active'
+    );
+
+
+    if (
+        btn.classList.contains(
+            'active'
+        )
+    ) {
+
+        btn.className =
+            "tag-btn active px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200";
+
+    }
+
+    else {
+
+        btn.className =
+            "tag-btn px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-50 text-gray-600 border border-gray-200";
+
+    }
+
+}
+
+
+
+
+
+
+// =====================================================
+// 지도
+// =====================================================
+
+let map=null,userMarker=null,routeLine=null,selectedPlace=null,locationWatchId=null,placeMarkers=[],selectedMoods=new Set();
+function setMapStatus(t){let e=document.getElementById('map-status');if(e){e.textContent=t;e.classList.remove('hidden');}}
+function initMap(){if(map){map.invalidateSize();return;}map=L.map('map',{zoomControl:false}).setView([37.5445,127.0560],15);L.control.zoom({position:'bottomright'}).addTo(map);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);map.on('click',e=>{selectedPlace={name:'선택한 지도 위치',lat:e.latlng.lat,lon:e.latlng.lng,address:'지도에서 선택한 위치',type:'지도 위치'};updateRouteDestination();});setTimeout(()=>map.invalidateSize(),150);}
+function clearPlaceMarkers(){placeMarkers.forEach(m=>map.removeLayer(m));placeMarkers=[];}
+function addPlaceMarker(p){let m=L.marker([+p.lat,+p.lon]).addTo(map);placeMarkers.push(m);m.on('click',()=>showPlaceDetails(p,m));m.bindTooltip(p.name||p.display_name||'장소');return m;}
+function showPlaceDetails(p,m){selectedPlace={name:p.name||p.display_name||'이름 없는 장소',lat:+p.lat,lon:+p.lon,address:p.display_name||'주소 정보 없음',type:p.type||'장소'};updateRouteDestination();let c=document.createElement('div'),h=document.createElement('strong'),a=document.createElement('p'),b=document.createElement('p'),btn=document.createElement('button');h.textContent=selectedPlace.name;a.textContent='종류: '+selectedPlace.type;b.textContent='주소: '+selectedPlace.address;btn.textContent='여기까지 길찾기';btn.style.cssText='background:#2563eb;color:white;padding:6px 10px;border-radius:8px';btn.onclick=openRoutePanel;c.append(h,a,b,btn);(m||L.marker([selectedPlace.lat,selectedPlace.lon]).addTo(map)).bindPopup(c).openPopup();}
+function startLiveLocation(){if(!navigator.geolocation){alert('위치 기능을 지원하지 않는 브라우저입니다.');return;}if(locationWatchId!==null){if(userMarker)map.setView(userMarker.getLatLng(),16);return;}setMapStatus('위치 권한 확인 중…');locationWatchId=navigator.geolocation.watchPosition(pos=>{let lat=pos.coords.latitude,lon=pos.coords.longitude;if(!map)initMap();if(!userMarker){userMarker=L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:3,fillColor:'#1677ff',fillOpacity:1}).addTo(map).bindTooltip('내 현재 위치');map.setView([lat,lon],16);}else userMarker.setLatLng([lat,lon]);window.tripNaviCurrentLocation={lat,lon};setMapStatus('현재 위치가 업데이트되었습니다.');},err=>{locationWatchId=null;alert((err.code===1?'위치 권한을 허용해 주세요.':'현재 위치를 확인할 수 없습니다.')+' 휴대폰에서는 HTTPS 접속이 필요할 수 있습니다.');},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});}
+async function searchPlaces(){if(!map)initMap();let q=document.getElementById('place-search').value.trim();if(!q)return alert('검색할 장소 이름을 입력해 주세요.');setMapStatus('장소 검색 중…');try{let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&q='+encodeURIComponent(q),{headers:{'Accept-Language':'ko'}}),data=await r.json();clearPlaceMarkers();if(!data.length)return setMapStatus('검색 결과가 없습니다.');data.forEach(addPlaceMarker);map.fitBounds(L.latLngBounds(data.map(p=>[+p.lat,+p.lon])),{padding:[40,40],maxZoom:16});setMapStatus('검색 결과 '+data.length+'개 · 마커를 누르면 상세정보가 나옵니다.');showPlaceDetails(data[0],placeMarkers[0]);}catch(e){setMapStatus('장소 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');}}
+function openRoutePanel(){document.getElementById('route-panel').classList.remove('hidden');document.getElementById('route-panel').classList.add('flex');updateRouteDestination();}
+function updateRouteDestination(){let e=document.getElementById('route-destination-label');if(e)e.textContent=selectedPlace?selectedPlace.name+' ('+selectedPlace.lat.toFixed(5)+', '+selectedPlace.lon.toFixed(5)+')':'장소를 검색하고 마커를 선택하세요.';}
+function closePanel(id){let e=document.getElementById(id);e.classList.add('hidden');e.classList.remove('flex');}
+async function drawRoute(){let msg=document.getElementById('route-message'),loc=window.tripNaviCurrentLocation;if(!selectedPlace)return msg.textContent='먼저 장소를 검색하고 마커를 선택하세요.';if(!loc)return msg.textContent='먼저 내 위치 버튼을 눌러 현재 위치를 확인하세요.';msg.textContent='자동차 경로 계산 중…';try{let r=await fetch(`https://router.project-osrm.org/route/v1/driving/${loc.lon},${loc.lat};${selectedPlace.lon},${selectedPlace.lat}?overview=full&geometries=geojson`),d=await r.json();if(!d.routes||!d.routes.length)throw Error();if(routeLine)map.removeLayer(routeLine);routeLine=L.geoJSON(d.routes[0].geometry,{style:{color:'#1677ff',weight:6}}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[50,90]});msg.textContent=`${(d.routes[0].distance/1000).toFixed(1)}km · 약 ${Math.round(d.routes[0].duration/60)}분 (자동차 예상값)`;closePanel('route-panel');setMapStatus('경로를 지도에 표시했습니다.');}catch(e){msg.textContent='경로를 불러오지 못했습니다. 다시 시도해 주세요.';}}
+function openAiPanel(){document.getElementById('ai-panel').classList.remove('hidden');document.getElementById('ai-panel').classList.add('flex');}
+document.querySelectorAll('.mood-tag').forEach(b=>{b.style.cssText='border:1px solid #ddd;border-radius:999px;padding:8px 12px;font-size:13px;background:white';b.onclick=()=>{let t=b.dataset.tag;selectedMoods.has(t)?selectedMoods.delete(t):selectedMoods.add(t);b.style.background=selectedMoods.has(t)?'#eff6ff':'white';b.style.borderColor=selectedMoods.has(t)?'#2563eb':'#ddd';};});
+// Nominatim은 장소명+전체 주소를 동시에 넣으면 검색 결과가 0건일 수 있어
+// 주소 단독 → 장소명 단독 → 이름+지역 순으로 재시도한다.
+const geocodeCache=new Map();
+const geoWait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+let lastGeoRequest=0;
+async function findPlaceCoordinates(p){
+ const name=(p.name||'').trim(),address=(p.address||'').trim();
+ const region=address.split(/\s+/).slice(0,2).join(' ');
+ const queries=[address,name,region&&name?region+' '+name:''].filter(Boolean);
+ for(const query of [...new Set(queries)]){
+  if(geocodeCache.has(query)){const cached=geocodeCache.get(query);if(cached)return cached;continue;}
+  const delay=Math.max(0,1100-(Date.now()-lastGeoRequest));if(delay)await geoWait(delay);
+  lastGeoRequest=Date.now();
+  try{
+   const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=kr&q='+encodeURIComponent(query),{headers:{'Accept-Language':'ko'}});
+   if(!res.ok)continue;
+   const results=await res.json();
+   const loc=results.find(v=>Number.isFinite(+v.lat)&&Number.isFinite(+v.lon));
+   geocodeCache.set(query,loc||null);
+   if(loc)return loc;
+  }catch(e){console.warn('지도 검색 실패:',query,e);}
+ }
+ return null;
+}
+async function resolveRoutePlaces(places){
+ for(const p of places){
+  if(p.lat!=null&&p.lon!=null&&Number.isFinite(+p.lat)&&Number.isFinite(+p.lon))continue;
+  const loc=await findPlaceCoordinates(p);
+  if(loc){p.lat=+loc.lat;p.lon=+loc.lon;p.display_name=loc.display_name;}
+ }
+ return places;
+}
+let currentRecommendations=[];
+async function requestRecommendations(){
+ const msg=document.getElementById('ai-message'),out=document.getElementById('ai-results');
+ const desc=document.getElementById('ai-description').value.trim(),c=map?map.getCenter():{lat:37.5445,lng:127.0560};
+ out.replaceChildren();currentRecommendations=[];document.getElementById('save-ai-route').classList.add('hidden');document.getElementById('show-ai-route').classList.add('hidden');msg.textContent='AI가 취향에 맞는 장소를 찾고 있어요…';
+ try{
+  const r=await fetch('/api/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags:[...selectedMoods],description:desc,latitude:c.lat,longitude:c.lng})});
+  const d=await r.json();if(!r.ok)throw Error(d.message||'추천 서버 오류');
+  const places=Array.isArray(d.places)?d.places:[];if(!places.length)throw Error('추천 장소가 없습니다.');
+  msg.textContent='추천 장소 위치를 지도에서 확인하는 중…';clearPlaceMarkers();
+  for(const p of places.slice(0,5)){
+   const location=await findPlaceCoordinates(p);
+   const item={name:p.name||'추천 장소',address:p.address||'',reason:p.reason||'',lat:location?+location.lat:null,lon:location?+location.lon:null,display_name:location?location.display_name:(p.address||''),type:'AI 추천'};
+   currentRecommendations.push(item);renderRecommendation(item,out,currentRecommendations.length);
+   if(location&&map)addPlaceMarker(item);
+
+  }
+  const located=currentRecommendations.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon));
+  if(located.length&&map)map.fitBounds(L.latLngBounds(located.map(p=>[p.lat,p.lon])),{padding:[35,35],maxZoom:15});
+  msg.textContent='AI 추천 '+currentRecommendations.length+'곳 · 지도 위치 확인 '+located.length+'곳 (저장은 좌표가 없어도 가능합니다).';
+  document.getElementById('save-ai-route').classList.remove('hidden');document.getElementById('show-ai-route').classList.remove('hidden');
+ }catch(e){msg.textContent='추천 실패: '+e.message;}
+}
+function renderRecommendation(p,out,order){
+ const b=document.createElement('button'),n=document.createElement('div'),a=document.createElement('div'),reason=document.createElement('div');
+ b.className='w-full text-left border rounded-xl p-3';n.className='font-bold text-sm';n.textContent=order+'. '+p.name;a.className='text-xs text-gray-500 mt-1';a.textContent=p.address||'주소 확인 필요';reason.className='text-xs text-blue-600 mt-1';reason.textContent=p.reason||'';
+ const save=document.createElement('button');save.textContent='☆ 장소 저장';save.className='mt-2 rounded-lg border px-3 py-1 text-xs text-violet-700';save.onclick=async ev=>{ev.stopPropagation();await saveSinglePlace(p);};b.append(n,a,reason,save);b.onclick=()=>{if(!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return alert('지도에서 위치를 확인하지 못했습니다. 장소 이름으로 검색해 주세요.');selectedPlace={name:p.name,lat:p.lat,lon:p.lon,address:p.address,type:p.type};map.setView([p.lat,p.lon],17);showPlaceDetails(p,addPlaceMarker(p));closePanel('ai-panel');};out.appendChild(b);
+}
+async function saveSinglePlace(p){
+ try{const r=await fetch('/api/places',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:p.name,address:p.address,lat:p.lat,lon:p.lon,reason:p.reason})});const d=await r.json();if(!r.ok)throw Error(d.message||'저장 실패');alert('장소를 저장했습니다.');}catch(e){alert(e.message);}
+}
+async function displayRouteOnMap(places){
+ if(!map)initMap();clearPlaceMarkers();if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+ setMapStatus('장소의 지도 위치를 확인하는 중입니다. 잠시 기다려 주세요…');
+ await resolveRoutePlaces(places);
+ const valid=places.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lon)&&p.lat!==null&&p.lon!==null);
+ valid.forEach((p,i)=>{let marker=L.marker([+p.lat,+p.lon],{icon:L.divIcon({className:'',html:`<div style="background:#7c3aed;color:white;border:2px solid white;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-weight:bold;box-shadow:0 2px 6px #555">${i+1}</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(map);const popup = document.createElement('div');
+
+const title = document.createElement('strong');
+title.textContent = `${i + 1}. ${p.name}`;
+
+const address = document.createElement('p');
+address.textContent = `주소: ${p.display_name || p.address || '주소 정보 없음'}`;
+
+const reason = document.createElement('p');
+reason.textContent = p.reason || '추천 설명 없음';
+
+popup.append(title, address, reason);
+marker.bindPopup(popup);placeMarkers.push(marker);});
+ if(valid.length<2){if(valid.length)map.setView([+valid[0].lat,+valid[0].lon],15);setMapStatus('추천 '+places.length+'곳 중 지도 좌표 확인 '+valid.length+'곳: 경로선은 2곳 이상 좌표가 있어야 표시됩니다. 추천 장소 저장은 가능합니다.');return;}
+ map.fitBounds(L.latLngBounds(valid.map(p=>[+p.lat,+p.lon])),{padding:[40,50]});setMapStatus('실제 도로 경로를 불러오는 중…');
+ try{const coords=valid.map(p=>p.lon+','+p.lat).join(';');const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson');const d=await r.json();if(!r.ok||!d.routes?.length)throw Error();routeLine=L.geoJSON(d.routes[0].geometry,{style:{color:'#8b5cf6',weight:6}}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[45,65]});setMapStatus('추천 방문 순서대로 자동차 경로를 표시했습니다.');}
+ catch(e){routeLine=L.polyline(valid.map(p=>[+p.lat,+p.lon]),{color:'#8b5cf6',weight:4,dashArray:'8 8'}).addTo(map);setMapStatus('도로 경로 조회 실패: 장소 간 직선으로 임시 표시했습니다.');}
+}
+async function showRecommendedRoute(){closePanel('ai-panel');goToMap();setTimeout(()=>displayRouteOnMap(currentRecommendations),250);}
+let savedTab='routes';
+function switchSavedTab(tab){savedTab=tab;document.getElementById('saved-place-list').classList.toggle('hidden',tab!=='places');document.getElementById('saved-route-list').classList.toggle('hidden',tab!=='routes');document.getElementById('tab-saved-places').classList.toggle('bg-blue-50',tab==='places');document.getElementById('tab-saved-routes').classList.toggle('bg-blue-50',tab==='routes');if(tab==='places')loadSavedPlaces();else loadSavedRoutes();}
+async function loadSavedPlaces(){const out=document.getElementById('saved-place-list');out.replaceChildren();try{const r=await fetch('/api/places');const data=await r.json();if(!r.ok)throw Error(data.message||'불러오기 실패');if(!data.length){out.textContent='아직 저장한 장소가 없습니다.';return;}for(const p of data){const card=document.createElement('div');card.className='bg-white border rounded-2xl p-4';const name=document.createElement('h3');name.className='font-bold text-sm';name.textContent=p.name;const addr=document.createElement('p');addr.className='text-xs text-gray-500 my-2';addr.textContent=p.address||'';const view=document.createElement('button');view.className='text-blue-600 text-xs font-bold mr-4';view.textContent='지도에서 보기';view.onclick=()=>{if(p.lat==null||p.lon==null)return alert('좌표를 확인하지 못한 장소입니다.');goToMap();setTimeout(()=>{clearPlaceMarkers();addPlaceMarker(p);map.setView([p.lat,p.lon],16);},200);};const del=document.createElement('button');del.className='text-red-500 text-xs font-bold';del.textContent='삭제';del.onclick=async()=>{if(!await appConfirm('장소를 삭제할까요?'))return;const r=await fetch('/api/places/'+p.id,{method:'DELETE'});if(r.ok)loadSavedPlaces();else alert('삭제 실패');};card.append(name,addr,view,del);out.appendChild(card);}}catch(e){out.textContent='장소 불러오기 실패: '+e.message;}}
+async function saveRecommendedRoute(){
+ if(!currentRecommendations.length)return alert('먼저 AI 추천을 받아주세요.');
+ const title=await appPrompt('저장할 여행경로 이름을 입력하세요.','AI 추천 여행경로');if(!title||!title.trim())return;
+ try{const r=await fetch('/api/routes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title.trim(),placesJson:JSON.stringify(currentRecommendations)})});const d=await r.json();if(!r.ok)throw Error(d.message||'저장 실패');alert('추천 '+currentRecommendations.length+'곳을 여행경로로 저장했습니다. (지도 좌표가 없는 장소는 경로선에 표시되지 않을 수 있습니다.)');closePanel('ai-panel');goToRoute();}catch(e){alert(e.message);}
+}
+async function loadSavedRoutes(){
+ const out=document.getElementById('saved-route-list');out.replaceChildren();
+ try{const r=await fetch('/api/routes');const data=await r.json();if(!r.ok)throw Error(data.message||'불러오기 실패');
+ if(!data.length){out.textContent='아직 저장한 여행경로가 없습니다.';return;}
+ for(const route of data){const card=document.createElement('div');card.className='bg-white border rounded-2xl p-4';const title=document.createElement('h3');title.className='font-bold text-sm';title.textContent=route.title;card.appendChild(title);
+ let places=[];try{places=JSON.parse(route.placesJson||'[]');}catch(e){}
+ const names=document.createElement('p');names.className='text-xs text-gray-500 my-2';names.textContent=places.map(p=>p.name).join(' → ');card.appendChild(names);
+ const view=document.createElement('button');view.className='text-blue-600 text-xs font-bold mr-4';view.textContent='지도에서 보기';view.onclick=()=>{goToMap();setTimeout(()=>displayRouteOnMap(places),200);};card.appendChild(view);
+ const del=document.createElement('button');del.className='text-red-500 text-xs font-bold';del.textContent='삭제';del.onclick=async()=>{if(!await appConfirm('이 여행경로를 삭제할까요?'))return;const response=await fetch('/api/routes/'+route.id,{method:'DELETE'});if(response.ok)loadSavedRoutes();else alert('삭제 실패');};card.appendChild(del);out.appendChild(card);}
+ }catch(e){out.textContent='경로 불러오기 실패: '+e.message;}
+}
+// 모바일 앱 내부 알림 · 확인 · 입력 다이얼로그
+let tnToastTimer;
+function showToast(message){const box=document.getElementById('tn-toast');document.getElementById('tn-toast-text').textContent=String(message);box.classList.add('visible');clearTimeout(tnToastTimer);tnToastTimer=setTimeout(()=>box.classList.remove('visible'),3500);}
+window.alert=showToast;
+function appDialog(message,mode='confirm',defaultValue=''){
+ return new Promise(resolve=>{const overlay=document.getElementById('tn-dialog'),text=document.getElementById('tn-dialog-text'),input=document.getElementById('tn-dialog-input'),cancel=document.getElementById('tn-dialog-cancel'),ok=document.getElementById('tn-dialog-ok');text.textContent=message;input.classList.toggle('hidden',mode!=='prompt');input.value=defaultValue;overlay.classList.add('visible');let finished=false;const finish=value=>{if(finished)return;finished=true;overlay.classList.remove('visible');ok.onclick=null;cancel.onclick=null;input.onkeydown=null;resolve(value);};ok.onclick=()=>finish(mode==='prompt'?input.value:true);cancel.onclick=()=>finish(mode==='prompt'?null:false);input.onkeydown=e=>{if(e.key==='Enter')ok.click();if(e.key==='Escape')cancel.click();};if(mode==='prompt')setTimeout(()=>input.focus(),50);});
+}
+function appConfirm(message){return appDialog(message);}
+function appPrompt(message,defaultValue=''){return appDialog(message,'prompt',defaultValue);}
+async function apiMy(url,method='GET',data){const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});const result=await r.json().catch(()=>({}));if(!r.ok)throw Error(result.message||'요청에 실패했습니다.');return result;}
+let pendingMyPhoto = undefined;
+function showMySection(section){
+  const titles={profile:'프로필 설정',account:'계정 설정',contact:'문의하기'};
+  document.getElementById('my-section-title').textContent=titles[section]||'마이';
+  ['profile','account','contact'].forEach(k=>document.getElementById('my-section-'+k).classList.toggle('hidden',k!==section));
+  document.getElementById('my-section-overlay').classList.remove('hidden');
+}
+function closeMySection(){document.getElementById('my-section-overlay').classList.add('hidden');}
+function setMyAvatar(photo){
+  for(const [imageId,placeholderId] of [['my-avatar','my-avatar-placeholder'],['my-avatar-edit','my-avatar-edit-placeholder']]){
+    const img=document.getElementById(imageId), icon=document.getElementById(placeholderId);
+    if(photo){img.src=photo;img.classList.remove('hidden');icon.classList.add('hidden');}
+    else{img.removeAttribute('src');img.classList.add('hidden');icon.classList.remove('hidden');}
+  }
+}
+async function previewMyPhoto(event){
+  const file=event.target.files?.[0];if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){showToast('JPG, PNG, WEBP 이미지만 선택해 주세요.');return;}
+  if(file.size>8*1024*1024){showToast('8MB 이하의 사진을 선택해 주세요.');return;}
+  try{
+    const image=await createImageBitmap(file), canvas=document.createElement('canvas');
+    const ratio=Math.min(1,320/Math.max(image.width,image.height));
+    canvas.width=Math.max(1,Math.round(image.width*ratio));canvas.height=Math.max(1,Math.round(image.height*ratio));
+    canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);image.close();
+    pendingMyPhoto=canvas.toDataURL('image/jpeg',0.76);
+    if(pendingMyPhoto.length>300000)throw Error('사진 용량이 너무 큽니다.');
+    setMyAvatar(pendingMyPhoto);
+  }catch(e){showToast('사진을 처리하지 못했습니다. 다른 사진을 선택해 주세요.');}
+}
+function removeMyPhoto(){pendingMyPhoto='';setMyAvatar(null);document.getElementById('my-photo-file').value='';}
+async function loadMyPage(){
+  try{
+    const user=await apiMy('/api/auth/me');
+    document.getElementById('user-nickname').textContent=user.name;
+    document.getElementById('my-email').textContent=user.email.startsWith('kakao_')?'카카오 로그인 계정':user.email;
+    document.getElementById('my-edit-name').value=user.name;
+    pendingMyPhoto=undefined;setMyAvatar(user.profileImage||null);
+    const counts=await Promise.allSettled([apiMy('/api/places'),apiMy('/api/routes')]);
+    document.getElementById('my-place-count').textContent=counts[0].status==='fulfilled'?counts[0].value.length:'—';
+    document.getElementById('my-route-count').textContent=counts[1].status==='fulfilled'?counts[1].value.length:'—';
+  }catch(e){showToast(e.message);}
+}
+async function updateMyProfile(){
+  const name=document.getElementById('my-edit-name').value.trim();if(!name)return showToast('닉네임을 입력해 주세요.');
+  try{
+    const payload={name};if(pendingMyPhoto!==undefined)payload.profileImage=pendingMyPhoto;
+    const user=await apiMy('/api/auth/profile','PUT',payload);
+    document.getElementById('user-nickname').textContent=user.name;
+    localStorage.setItem('loginUserName',user.name);pendingMyPhoto=undefined;setMyAvatar(user.profileImage||null);
+    closeMySection();showToast('프로필을 저장했습니다.');
+  }catch(e){showToast(e.message);}
+}
+async function updateMyPassword(){
+  const currentPassword=document.getElementById('my-old-password').value,newPassword=document.getElementById('my-new-password').value,confirmPassword=document.getElementById('my-confirm-password').value;
+  if(!currentPassword||newPassword.length<8)return showToast('현재 비밀번호와 8자 이상의 새 비밀번호를 입력해 주세요.');
+  if(newPassword!==confirmPassword)return showToast('새 비밀번호가 일치하지 않습니다.');
+  try{await apiMy('/api/auth/password','PUT',{currentPassword,newPassword});
+    ['my-old-password','my-new-password','my-confirm-password'].forEach(id=>document.getElementById(id).value='');
+    closeMySection();showToast('비밀번호를 변경했습니다.');
+  }catch(e){showToast(e.message);}
+}
+async function submitMyInquiry(){
+  const title=document.getElementById('my-contact-title').value.trim();
+  const message=document.getElementById('my-contact-message').value.trim();
+  if(!title||!message)return showToast('제목과 문의 내용을 입력해 주세요.');
+  if(title.length>100||message.length>2000)return showToast('제목은 100자, 내용은 2000자 이내로 입력해 주세요.');
+  try{
+    await apiMy('/api/inquiries','POST',{title,message});
+    document.getElementById('my-contact-title').value='';
+    document.getElementById('my-contact-message').value='';
+    closeMySection();showToast('문의가 정상적으로 접수되었습니다.');
+  }catch(e){showToast(e.message);}
+}
+async function logoutTripNavi(){if(!await appConfirm('로그아웃하시겠어요?'))return;try{await apiMy('/api/auth/logout','POST');localStorage.removeItem('loginUserName');document.getElementById('login-password').value='';goToLogin();showToast('로그아웃했습니다.');}catch(e){showToast(e.message);}}
+
+// 새로 열었을 때 로그인 화면부터 표시
+showScreen('screen-login');
+checkKakaoLogin();
+
+
+</script>
+
+
+</body>
+</html>
